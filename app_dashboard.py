@@ -4,8 +4,8 @@ import plotly.express as px
 
 st.set_page_config(page_title="Transparência PCES", page_icon="🚓", layout="wide")
 
-st.title("🚓 Portal de Transparência - Polícia Civil (ES)")
-st.write("Dados abertos sobre o quadro de Oficiais Investigadores de Polícia (antigos agentes, investigadores e escrivães).")
+st.title("Portal de Transparência - Polícia Civil (ES)")
+st.write("Dados abertos sobre o quadro de Oficiais Investigadores de Polícia.")
 st.markdown("---")
 
 @st.cache_data
