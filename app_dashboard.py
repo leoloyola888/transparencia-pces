@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 1. CONFIGURAÇÕES DA PÁGINA (Aba do navegador)
+# 1. CONFIGURAÇÕES DA PÁGINA
 st.set_page_config(
     page_title="Inteligência de Dados | PCES", 
     page_icon="🛡️", 
@@ -10,92 +10,29 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. INJEÇÃO DE CSS (O segredo para tirar a "Cara de IA/Padrão")
+# 2. CSS SEGURO (Apenas Textos e Alerta)
 st.markdown("""
 <style>
-    /* Cor de fundo principal mais profissional (cinza super claro quase branco) */
-    .stApp {
-        background-color: #F8F9FA;
-    }
-    
-    /* Título principal customizado */
     .main-title {
         font-size: 38px;
         font-weight: 800;
-        color: #1C3F60; /* Azul Marinho Polícia */
+        color: #1C3F60;
         margin-bottom: 0px;
         padding-bottom: 0px;
         font-family: 'Arial Black', sans-serif;
     }
-    
     .sub-title {
         font-size: 16px;
-        color: #555555;
+        color: #888888;
         margin-top: -10px;
         margin-bottom: 30px;
     }
-
-    /* Estilo dos "Cards" de Métricas (Deixando eles com cara de Dashboard Profissional) */
-    div[data-testid="metric-container"] {
-        background-color: #FFFFFF;
-        border: 1px solid #E0E4E8;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 2px 4px 12px rgba(0,0,0,0.05);
-        border-left: 6px solid #1C3F60; /* Faixa lateral azul */
-    }
-    
-    [data-testid="stMetricValue"] {
-        font-size: 38px !important;
-        font-weight: 800 !important;
-        color: #1C3F60 !important;
-    }
-    
-    [data-testid="stMetricLabel"] {
-        font-size: 15px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase;
-        color: #7F8C8D !important;
-    }
-
-    /* Customização das Abas (Tabs) para parecerem botões nativos */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 45px;
-        white-space: pre-wrap;
-        background-color: #FFFFFF;
-        border-radius: 8px 8px 0px 0px;
-        gap: 1px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        border: 1px solid #E0E4E8;
-        border-bottom: none;
-        color: #555555;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1C3F60;
-        color: white !important;
-        border-color: #1C3F60;
-    }
-    
-    /* Ajuste da tabela para ficar mais clean */
-    [data-testid="stDataFrame"] {
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    /* Aviso de Vagas formatado */
     .alerta-vagas {
-        background-color: #FFF3CD;
+        background-color: #332b00; /* Tom escuro elegante para o alerta no dark mode */
         border-left: 5px solid #FFC107;
         padding: 15px;
         border-radius: 5px;
-        color: #856404;
+        color: #FFC107;
         font-size: 15px;
         margin-top: 20px;
         margin-bottom: 20px;
@@ -129,7 +66,6 @@ aba1, aba2, aba3 = st.tabs([
 # ABA 1: ATIVOS E ABONO 
 # =============================================================
 with aba1:
-    
     if not df_rem.empty:
         df_ativos = df_serv[df_serv['Situacao'] == 'ATIVO'].copy()
         
@@ -146,19 +82,16 @@ with aba1:
         com_abono = len(df_painel[df_painel['Recebe_Abono'] == 'Sim'])
         taxa = (com_abono / total_ativos) * 100 if total_ativos > 0 else 0
         
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col1:
-            st.metric("Total de Investigadores Ativos", f"{total_ativos:,}".replace(',','.'))
-        with col2:
-            st.metric(f"Elegíveis para Aposentadoria", f"{com_abono}")
-        with col3:
-            st.metric("Taxa de Renovação Imediata", f"{taxa:.1f}%")
+        # Métricas Nativas do Streamlit (Sem quebrar o layout)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total de Investigadores Ativos", f"{total_ativos:,}".replace(',','.'))
+        col2.metric(f"Elegíveis para Aposentadoria", f"{com_abono}")
+        col3.metric("Taxa de Renovação Imediata", f"{taxa:.1f}%")
         
-        # Alerta customizado via HTML/CSS (sai a cara padrão do st.info)
         texto_alerta = f"<strong>Atenção Estratégica:</strong> Há {com_abono} servidores recebendo Abono Permanência. Estes profissionais já reúnem condições legais para aposentadoria voluntária, indicando uma potencial demanda de reposição de {taxa:.1f}% do quadro atual a curto prazo."
         st.markdown(f'<div class="alerta-vagas">{texto_alerta}</div>', unsafe_allow_html=True)
         
-        st.markdown("#### Listagem do Efetivo")
+        st.write("#### Listagem do Efetivo")
         colunas_exibicao = ['NumFunc', 'Nome', 'Cargo', 'Recebe_Abono']
         colunas_exibicao = [c for c in colunas_exibicao if c in df_painel.columns]
         st.dataframe(df_painel[colunas_exibicao], use_container_width=True, hide_index=True)
@@ -169,7 +102,7 @@ with aba1:
 # ABA 2: HISTÓRICO DE SAÍDAS
 # =============================================================
 with aba2:
-    st.markdown("#### Curva Histórica de Vacâncias e Aposentadorias")
+    st.write("#### Curva Histórica de Vacâncias e Aposentadorias")
     
     df_saidas = df_serv[df_serv['Situacao'].isin(['APOSENTADO', 'DESLIGADO'])].copy()
     
@@ -185,28 +118,22 @@ with aba2:
     dados_grafico = df_saidas.groupby(['Ano', 'Situacao']).size().reset_index(name='Quantidade')
     
     if not dados_grafico.empty:
-        # Plotly Customizado para visual corporativo
         fig2 = px.bar(dados_grafico, x='Ano', y='Quantidade', color='Situacao', 
                      barmode='stack',
-                     color_discrete_map={'APOSENTADO': '#4C72B0', 'DESLIGADO': '#C44E52'}) # Cores sóbrias
+                     color_discrete_map={'APOSENTADO': '#4C72B0', 'DESLIGADO': '#C44E52'})
                      
         fig2.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", # Fundo transparente (tira a grade feia)
-            paper_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(tickmode='linear', dtick=1, showgrid=False, linecolor='#555'),
-            yaxis=dict(showgrid=True, gridcolor='#E0E4E8', title="Qtd. de Servidores"),
-            legend=dict(title="", orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), # Legenda em cima, clean
-            margin=dict(l=0, r=0, t=30, b=0),
-            font_family="Arial"
+            xaxis=dict(tickmode='linear', dtick=1),
+            legend=dict(title="", orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            margin=dict(l=10, r=10, t=30, b=10)
         )
-        # Remove a barra flutuante chata do plotly
         st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
 # =============================================================
 # ABA 3: PERFIL DE TEMPO DE CASA
 # =============================================================
 with aba3:
-    st.markdown("#### Composição do Efetivo por Tempo de Corporação")
+    st.write("#### Composição do Efetivo por Tempo de Corporação")
     
     df_ativos = df_serv[df_serv['Situacao'] == 'ATIVO'].copy()
     df_ativos['Exercicio'] = pd.to_datetime(df_ativos['Exercicio'], errors='coerce')
@@ -229,16 +156,11 @@ with aba3:
     if not df_tempo.empty:
         fig3 = px.bar(df_tempo, x='Faixa de Tempo', y='Quantidade', 
                      text='Quantidade',
-                     color_discrete_sequence=['#1C3F60']) # Cor única institucional
+                     color_discrete_sequence=['#4C72B0'])
                      
-        fig3.update_traces(textposition='outside', textfont_size=14, textfont_color="#333", cliponaxis=False)
+        fig3.update_traces(textposition='outside', cliponaxis=False)
         fig3.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(showgrid=False, linecolor='#555', title=""),
-            yaxis=dict(showgrid=True, gridcolor='#E0E4E8', title=""),
             showlegend=False,
-            margin=dict(l=0, r=0, t=30, b=0),
-            font_family="Arial"
+            margin=dict(l=10, r=10, t=30, b=10)
         )
         st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
