@@ -113,7 +113,7 @@ with aba1:
         st.write(f"**Ocupação do Quadro Legal ({taxa_ocupacao:.1f}% ocupado)**")
         st.progress(total_ocupantes / cargos_lei)
         
-        texto_alerta = f"<strong>Mapa de Reposição:</strong> A corporação opera com um déficit real de {cargos_vagos:,} investigadores. Somando-se a isso os {total_afastados} servidores já afastados aguardando publicação de aposentadoria e os {com_abono} profissionais que recebem abono permanência, o volume estratégico de vacâncias chega a <strong>{vagas_estrategicas:,} vagas</strong>.".replace(',', '.')
+        texto_alerta = f"<strong>Mapa de Reposição:</strong> A corporação opera com um déficit real de {cargos_vagos:,} OIPs. Somando-se a isso os {total_afastados} servidores já afastados aguardando publicação de aposentadoria e {com_abono} profissionais que recebem abono permanência. Logo, o volume estratégico de vacâncias chega a <strong>{vagas_estrategicas:,} vagas</strong>.".replace(',', '.')
         st.markdown(f'<div class="alerta-vagas">{texto_alerta}</div>', unsafe_allow_html=True)
         
         st.write("#### Listagem do Efetivo Ativo")
