@@ -44,8 +44,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 3. CABEÇALHO CUSTOMIZADO
-st.markdown('<p class="main-title">DIRETORIA DE INTELIGÊNCIA E DADOS - PCES</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Painel Estratégico: Quadro de Oficiais Investigadores de Polícia (Ativos, Saídas e Projeções)</p>', unsafe_allow_html=True)
+col_logo, col_texto = st.columns([1, 8])
+
+with col_logo:
+    # O Streamlit vai ler o adesivo transparente que você salvou
+    st.image("logo.png", width=90) 
+
+with col_texto:
+    st.markdown('<p class="main-title">DIRETORIA DE INTELIGÊNCIA E DADOS - PCES</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Painel Estratégico da Comissão de Aprovados (Investigador)</p>', unsafe_allow_html=True)
+
 
 @st.cache_data
 def carregar_dados():
