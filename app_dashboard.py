@@ -48,7 +48,7 @@ col_logo, col_texto = st.columns([1, 8])
 
 with col_logo:
     # O Streamlit vai ler o adesivo transparente que você salvou
-    st.image("logo.png", width=90) 
+    st.image("logo.png", width=110) 
 
 with col_texto:
     st.markdown('<p class="main-title">DIRETORIA DE INTELIGÊNCIA E DADOS - PCES</p>', unsafe_allow_html=True)
