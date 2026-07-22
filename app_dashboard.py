@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import requests
 
-# 1. CONFIGURAÇÕES DA PÁGINA
+# =============================================================
+# 1. CONFIGURAÇÕES DA PÁGINA E CSS
+# =============================================================
 st.set_page_config(
     page_title="Inteligência de Dados | PCES", 
     page_icon="🛡️", 
@@ -11,7 +12,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. CSS SEGURO
 st.markdown("""
 <style>
     .main-title {
@@ -44,7 +44,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. CABEÇALHO CUSTOMIZADO COM LOGO
+# =============================================================
+# 2. CABEÇALHO CUSTOMIZADO COM LOGO
+# =============================================================
 col_logo, col_texto = st.columns([1, 8])
 
 with col_logo:
@@ -55,80 +57,72 @@ with col_texto:
     st.markdown('<p class="main-title">DIRETORIA DE INTELIGÊNCIA E DADOS - PCES</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-title">Painel Estratégico da Comissão de Aprovados (Investigador)</p>', unsafe_allow_html=True)
 
-
-# 4. MOTOR DA API - CONEXÃO DIRETA
-@st.cache_data(ttl=86400) # Robô atualiza os dados a cada 24 horas
+# =============================================================
+# 3. MOTOR DE DADOS - DOWNLOAD DIRETO SEGURO
+# =============================================================
+@st.cache_data(ttl=86400) # O sistema segura os dados na memória por 24 horas
 def carregar_dados():
-    # =====================================================================
-    # ⚠️ ATENÇÃO: COLE OS LINKS DIRETOS DE DOWNLOAD ENTRE AS ASPAS ABAIXO
-    # (Botão Direito no site do Governo -> Copiar endereço do link)
-    # =====================================================================
-    url_servidores = "https://dados.es.gov.br/dataset/4c3ef6d6-6a55-4c54-958b-87678d2b4d4e/resource/c26013df-354d-4467-9272-37e7bf570ccf/download/vinculosservidores.csv"
-    url_remuneracao = "https://dados.es.gov.br/dataset/4c3ef6d6-6a55-4c54-958b-87678d2b4d4e/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222/download/remuneracoes-06_2026.csv"
-    # =====================================================================
+    # Links fixos das planilhas no portal CKAN do ES
+    url_servidores = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/c26013df-354d-4467-9272-37e7bf570ccf"
+    url_remuneracao = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222"
 
     try:
-        # O Pandas acessa a internet e carrega o arquivo direto na memória do painel!
-        # Nota: Estamos usando sep=';' e encoding='latin-1' que é o padrão de 99% dos sistemas do governo.
+        # Lê os dados da nuvem
         df_servidores = pd.read_csv(url_servidores, sep=';', encoding='latin-1', low_memory=False)
         df_remuneracao = pd.read_csv(url_remuneracao, sep=';', encoding='latin-1', low_memory=False)
         
-        # Filtro automático exclusivo para o cargo de vocês
+        # Filtro blindado pelo CodCargo (2781)
         if 'CodCargo' in df_servidores.columns:
-            # Transforma a coluna em texto e tira qualquer espaço em branco ou ponto decimal invisível
             df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-            
-            # Aplica o filtro blindado
             df_servidores = df_servidores[df_servidores['CodCargo'] == '2781']
             
         return df_servidores, df_remuneracao
         
     except Exception as e:
-        # Tenta uma segunda vez com formatação diferente caso o governo use vírgula em vez de ponto e vírgula
+        # Modo fallback caso o governo mude o formato do arquivo de ponto e vírgula para vírgula
         try:
             df_servidores = pd.read_csv(url_servidores, low_memory=False)
             df_remuneracao = pd.read_csv(url_remuneracao, low_memory=False)
             
-           if 'CodCargo' in df_servidores.columns:
-            # Transforma a coluna em texto e tira qualquer espaço em branco ou ponto decimal invisível
-            df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-            
-            # Aplica o filtro blindado
-            df_servidores = df_servidores[df_servidores['CodCargo'] == '2781']
+            if 'CodCargo' in df_servidores.columns:
+                df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
+                df_servidores = df_servidores[df_servidores['CodCargo'] == '2781']
                 
             return df_servidores, df_remuneracao
         except Exception as e_interno:
-            st.error(f"⚠️ Erro ao baixar as planilhas diretas. Verifique se os links copiados estão corretos. Detalhe técnico: {e_interno}")
+            st.error(f"⚠️ Erro ao baixar as planilhas diretas. Detalhe técnico: {e_interno}")
             return pd.DataFrame(), pd.DataFrame()
 
+# Carrega as planilhas na memória
 df_serv, df_rem = carregar_dados()
-        
-   
-# 5. ESTRUTURA DAS ABAS
+
+# =============================================================
+# 4. ESTRUTURA DAS ABAS E GRÁFICOS
+# =============================================================
 aba1, aba2, aba3 = st.tabs([
     "📍 Visão Geral & Déficit", 
     "📉 Fluxo de Saídas", 
     "⏱️ Perfil da Tropa"
 ])
 
-# =============================================================
-# ABA 1: VISÃO GERAL E DÉFICIT
-# =============================================================
+# --- ABA 1: VISÃO GERAL E DÉFICIT ---
 with aba1:
     if not df_rem.empty:
+        # Separa os grupos
         df_ativos = df_serv[df_serv['Situacao'] == 'ATIVO'].copy()
         df_afastados = df_serv[df_serv['Situacao'] == 'AFASTADO PARA APOSENTADORIA'].copy()
         
+        # Procura quem recebe Abono Permanência (Código 220)
         df_rem['CodRubrica'] = df_rem['CodRubrica'].astype(str).str.strip()
         df_abono = df_rem[df_rem['CodRubrica'] == '220'].copy()
-        
         df_abono['Recebe_Abono'] = 'Sim'
         df_abono_simples = df_abono[['NumFunc', 'Recebe_Abono']].drop_duplicates()
         
+        # Cruza as planilhas
         df_painel = pd.merge(df_ativos, df_abono_simples, on='NumFunc', how='left')
         df_painel['Recebe_Abono'] = df_painel['Recebe_Abono'].fillna('Não')
         
-        # --- CÁLCULOS ESTRATÉGICOS ---
+        # Cálculos Matemáticos Oficiais
         cargos_lei = 2740
         total_ativos = len(df_painel)
         total_afastados = len(df_afastados)
@@ -136,11 +130,10 @@ with aba1:
         
         cargos_vagos = cargos_lei - total_ocupantes
         com_abono = len(df_painel[df_painel['Recebe_Abono'] == 'Sim'])
-        
         taxa_ocupacao = (total_ocupantes / cargos_lei) * 100
-        
         vagas_estrategicas = cargos_vagos + com_abono + total_afastados
         
+        # Exibição dos Blocos
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Cargos em Lei (Teto)", f"{cargos_lei:,}".replace(',','.'))
         col2.metric("Investigadores Ativos", f"{total_ativos:,}".replace(',','.'))
@@ -158,73 +151,75 @@ with aba1:
         colunas_exibicao = [c for c in colunas_exibicao if c in df_painel.columns]
         st.dataframe(df_painel[colunas_exibicao], use_container_width=True, hide_index=True)
     else:
-        st.warning("⏱️ Conectando à base de remuneração ou aguardando inserção dos IDs...")
+        st.warning("⏱️ Baixando as bases de dados e realizando os cruzamentos iniciais...")
 
-# =============================================================
-# ABA 2: HISTÓRICO DE SAÍDAS
-# =============================================================
+# --- ABA 2: HISTÓRICO DE SAÍDAS ---
 with aba2:
     st.write("#### Curva Histórica de Vacâncias e Aposentadorias")
     
     if not df_serv.empty:
         df_saidas = df_serv[df_serv['Situacao'].isin(['APOSENTADO', 'DESLIGADO'])].copy()
         
-        df_saidas['Data_Saida'] = pd.to_datetime(df_saidas['Aposentadoria'], errors='coerce')
-        mask_desligado = df_saidas['Situacao'] == 'DESLIGADO'
-        if 'Vacancia' in df_saidas.columns:
-            df_saidas.loc[mask_desligado, 'Data_Saida'] = pd.to_datetime(df_saidas.loc[mask_desligado, 'Vacancia'], errors='coerce')
-        
-        df_saidas = df_saidas.dropna(subset=['Data_Saida'])
-        df_saidas['Ano'] = df_saidas['Data_Saida'].dt.year
-        df_saidas = df_saidas[(df_saidas['Ano'] >= 2005) & (df_saidas['Ano'] <= 2026)]
-        
-        dados_grafico = df_saidas.groupby(['Ano', 'Situacao']).size().reset_index(name='Quantidade')
-        
-        if not dados_grafico.empty:
-            fig2 = px.bar(dados_grafico, x='Ano', y='Quantidade', color='Situacao', 
-                         barmode='stack',
-                         color_discrete_map={'APOSENTADO': '#4C72B0', 'DESLIGADO': '#C44E52'})
-                         
-            fig2.update_layout(
-                xaxis=dict(tickmode='linear', dtick=1),
-                legend=dict(title="", orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                margin=dict(l=10, r=10, t=30, b=10)
-            )
-            st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
+        if not df_saidas.empty:
+            df_saidas['Data_Saida'] = pd.to_datetime(df_saidas['Aposentadoria'], errors='coerce')
+            mask_desligado = df_saidas['Situacao'] == 'DESLIGADO'
+            
+            if 'Vacancia' in df_saidas.columns:
+                df_saidas.loc[mask_desligado, 'Data_Saida'] = pd.to_datetime(df_saidas.loc[mask_desligado, 'Vacancia'], errors='coerce')
+            
+            df_saidas = df_saidas.dropna(subset=['Data_Saida'])
+            df_saidas['Ano'] = df_saidas['Data_Saida'].dt.year
+            df_saidas = df_saidas[(df_saidas['Ano'] >= 2005) & (df_saidas['Ano'] <= 2026)]
+            
+            dados_grafico = df_saidas.groupby(['Ano', 'Situacao']).size().reset_index(name='Quantidade')
+            
+            if not dados_grafico.empty:
+                fig2 = px.bar(dados_grafico, x='Ano', y='Quantidade', color='Situacao', 
+                             barmode='stack',
+                             color_discrete_map={'APOSENTADO': '#4C72B0', 'DESLIGADO': '#C44E52'})
+                             
+                fig2.update_layout(
+                    xaxis=dict(tickmode='linear', dtick=1),
+                    legend=dict(title="", orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                    margin=dict(l=10, r=10, t=30, b=10)
+                )
+                st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("Não há dados de vacância estruturados neste recorte de tempo.")
 
-# =============================================================
-# ABA 3: PERFIL DE TEMPO DE CASA
-# =============================================================
+# --- ABA 3: PERFIL DE TEMPO DE CASA ---
 with aba3:
     st.write("#### Composição do Efetivo por Tempo de Corporação")
     
     if not df_serv.empty:
         df_ativos = df_serv[df_serv['Situacao'] == 'ATIVO'].copy()
-        df_ativos['Exercicio'] = pd.to_datetime(df_ativos['Exercicio'], errors='coerce')
-        df_ativos = df_ativos.dropna(subset=['Exercicio'])
         
-        ref_date = pd.to_datetime('2026-06-01')
-        df_ativos['Anos_Servico'] = (ref_date - df_ativos['Exercicio']).dt.days / 365.25
-        
-        bins = [-1, 5, 10, 15, 20, 25, 30, 100]
-        labels = ['Até 5 anos', '6 a 10 anos', '11 a 15 anos', '16 a 20 anos', '21 a 25 anos', '26 a 30 anos', 'Mais de 30 anos']
-        df_ativos['Faixa_Tempo'] = pd.cut(df_ativos['Anos_Servico'], bins=bins, labels=labels)
-        
-        df_tempo = df_ativos['Faixa_Tempo'].value_counts().reset_index()
-        df_tempo.columns = ['Faixa de Tempo', 'Quantidade']
-        
-        ordem_map = {l: i for i, l in enumerate(labels)}
-        df_tempo['Ordem'] = df_tempo['Faixa de Tempo'].map(ordem_map)
-        df_tempo = df_tempo.sort_values('Ordem').drop(columns=['Ordem'])
-        
-        if not df_tempo.empty:
-            fig3 = px.bar(df_tempo, x='Faixa de Tempo', y='Quantidade', 
-                         text='Quantidade',
-                         color_discrete_sequence=['#4C72B0'])
-                         
-            fig3.update_traces(textposition='outside', cliponaxis=False)
-            fig3.update_layout(
-                showlegend=False,
-                margin=dict(l=10, r=10, t=30, b=10)
-            )
-            st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
+        if 'Exercicio' in df_ativos.columns:
+            df_ativos['Exercicio'] = pd.to_datetime(df_ativos['Exercicio'], errors='coerce')
+            df_ativos = df_ativos.dropna(subset=['Exercicio'])
+            
+            ref_date = pd.to_datetime('2026-06-01')
+            df_ativos['Anos_Servico'] = (ref_date - df_ativos['Exercicio']).dt.days / 365.25
+            
+            bins = [-1, 5, 10, 15, 20, 25, 30, 100]
+            labels = ['Até 5 anos', '6 a 10 anos', '11 a 15 anos', '16 a 20 anos', '21 a 25 anos', '26 a 30 anos', 'Mais de 30 anos']
+            df_ativos['Faixa_Tempo'] = pd.cut(df_ativos['Anos_Servico'], bins=bins, labels=labels)
+            
+            df_tempo = df_ativos['Faixa_Tempo'].value_counts().reset_index()
+            df_tempo.columns = ['Faixa de Tempo', 'Quantidade']
+            
+            ordem_map = {l: i for i, l in enumerate(labels)}
+            df_tempo['Ordem'] = df_tempo['Faixa de Tempo'].map(ordem_map)
+            df_tempo = df_tempo.sort_values('Ordem').drop(columns=['Ordem'])
+            
+            if not df_tempo.empty:
+                fig3 = px.bar(df_tempo, x='Faixa de Tempo', y='Quantidade', 
+                             text='Quantidade',
+                             color_discrete_sequence=['#4C72B0'])
+                             
+                fig3.update_traces(textposition='outside', cliponaxis=False)
+                fig3.update_layout(
+                    showlegend=False,
+                    margin=dict(l=10, r=10, t=30, b=10)
+                )
+                st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
