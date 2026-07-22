@@ -74,8 +74,12 @@ def carregar_dados():
         df_remuneracao = pd.read_csv(url_remuneracao, sep=';', encoding='latin-1', low_memory=False)
         
         # Filtro automático exclusivo para o cargo de vocês
-        if 'Cargo' in df_servidores.columns:
-            df_servidores = df_servidores[df_servidores['Cargo'] == 'OFICIAL INVESTIGADOR DE POLICIA']
+        if 'CodCargo' in df_servidores.columns:
+            # Transforma a coluna em texto e tira qualquer espaço em branco ou ponto decimal invisível
+            df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
+            
+            # Aplica o filtro blindado
+            df_servidores = df_servidores[df_servidores['CodCargo'] == '2781']
             
         return df_servidores, df_remuneracao
         
