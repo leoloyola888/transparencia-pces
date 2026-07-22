@@ -59,24 +59,19 @@ with col_texto:
 # 4. MOTOR DA API - CONEXÃO DIRETA
 @st.cache_data(ttl=86400) # Robô atualiza os dados a cada 24 horas
 def carregar_dados():
-    # Os IDs exatos das tabelas no portal
-    id_servidores = "c26013df-354d-4467-9272-37e7bf570ccf"
-    id_remuneracao = "d558b77d-3e20-4b4a-815a-b8d0fc7b5222"
+    # =====================================================================
+    # ⚠️ ATENÇÃO: COLE OS LINKS DIRETOS DE DOWNLOAD ENTRE AS ASPAS ABAIXO
+    # (Botão Direito no site do Governo -> Copiar endereço do link)
+    # =====================================================================
+    url_servidores = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/c26013df-354d-4467-9272-37e7bf570ccf"
+    url_remuneracao = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222"
+    # =====================================================================
 
     try:
-        base_url = "https://transparencia.es.gov.br/api/3/action/datastore_search"
-        
-        # Faz o download dos Servidores via API
-        url_serv = f"{base_url}?resource_id={id_servidores}&limit=100000"
-        resp_serv = requests.get(url_serv).json()
-        
-        # Faz o download da Remuneração via API
-        url_rem = f"{base_url}?resource_id={id_remuneracao}&limit=100000"
-        resp_rem = requests.get(url_rem).json()
-        
-        # Converte os pacotes em planilhas
-        df_servidores = pd.DataFrame(resp_serv['result']['records'])
-        df_remuneracao = pd.DataFrame(resp_rem['result']['records'])
+        # O Pandas acessa a internet e carrega o arquivo direto na memória do painel!
+        # Nota: Estamos usando sep=';' e encoding='latin-1' que é o padrão de 99% dos sistemas do governo.
+        df_servidores = pd.read_csv(url_servidores, sep=';', encoding='latin-1', low_memory=False)
+        df_remuneracao = pd.read_csv(url_remuneracao, sep=';', encoding='latin-1', low_memory=False)
         
         # Filtro automático exclusivo para o cargo de vocês
         if 'Cargo' in df_servidores.columns:
@@ -85,11 +80,22 @@ def carregar_dados():
         return df_servidores, df_remuneracao
         
     except Exception as e:
-        # Modo de Segurança aprimorado
-        st.error(f"⚠️ Erro ao processar os dados. Verifique os IDs. Detalhe técnico: {e}")
-        return pd.DataFrame(), pd.DataFrame()
+        # Tenta uma segunda vez com formatação diferente caso o governo use vírgula em vez de ponto e vírgula
+        try:
+            df_servidores = pd.read_csv(url_servidores, low_memory=False)
+            df_remuneracao = pd.read_csv(url_remuneracao, low_memory=False)
+            
+            if 'Cargo' in df_servidores.columns:
+                df_servidores = df_servidores[df_servidores['Cargo'] == 'OFICIAL INVESTIGADOR DE POLICIA']
+                
+            return df_servidores, df_remuneracao
+        except Exception as e_interno:
+            st.error(f"⚠️ Erro ao baixar as planilhas diretas. Verifique se os links copiados estão corretos. Detalhe técnico: {e_interno}")
+            return pd.DataFrame(), pd.DataFrame()
 
 df_serv, df_rem = carregar_dados()
+        
+   
 # 5. ESTRUTURA DAS ABAS
 aba1, aba2, aba3 = st.tabs([
     "📍 Visão Geral & Déficit", 
