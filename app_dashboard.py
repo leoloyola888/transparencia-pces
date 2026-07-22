@@ -55,37 +55,27 @@ with col_texto:
     st.markdown('<p class="main-title">DIRETORIA DE INTELIGÊNCIA E DADOS - PCES</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-title">Painel Estratégico da Comissão de Aprovados (Investigador)</p>', unsafe_allow_html=True)
 
-# 4. MOTOR DA API - DETETIVE DO MÊS ATUAL
-def pegar_id_mais_recente(nome_do_pacote):
-    url_catalogo = f"https://transparencia.es.gov.br/api/3/action/package_show?id={nome_do_pacote}"
-    resposta = requests.get(url_catalogo).json()
-    arquivos = resposta['result']['resources']
-    ultimo_arquivo = arquivos[-1] 
-    return ultimo_arquivo['id']
 
+# 4. MOTOR DA API - CONEXÃO DIRETA
 @st.cache_data(ttl=86400) # Robô atualiza os dados a cada 24 horas
 def carregar_dados():
-    # =====================================================================
-    # ⚠️ ATENÇÃO: COLOQUE AS CHAVES DO GOVERNO AQUI NAS DUAS LINHAS ABAIXO
-    # =====================================================================
+    # Os IDs exatos das tabelas no portal
     id_servidores = "c26013df-354d-4467-9272-37e7bf570ccf"
-    nome_pacote_remuneracao = "portal-da-transparencia-pessoal"
-    # =====================================================================
+    id_remuneracao = "d558b77d-3e20-4b4a-815a-b8d0fc7b5222"
 
     try:
-        # Descobre o ID do mês mais recente da remuneração automaticamente
-        id_remuneracao_atual = pegar_id_mais_recente(nome_pacote_remuneracao)
-        
         base_url = "https://transparencia.es.gov.br/api/3/action/datastore_search"
         
         # Faz o download dos Servidores via API
         url_serv = f"{base_url}?resource_id={id_servidores}&limit=100000"
         resp_serv = requests.get(url_serv).json()
-        df_servidores = pd.DataFrame(resp_serv['result']['records'])
         
         # Faz o download da Remuneração via API
-        url_rem = f"{base_url}?resource_id={id_remuneracao_atual}&limit=100000"
+        url_rem = f"{base_url}?resource_id={id_remuneracao}&limit=100000"
         resp_rem = requests.get(url_rem).json()
+        
+        # Converte os pacotes em planilhas
+        df_servidores = pd.DataFrame(resp_serv['result']['records'])
         df_remuneracao = pd.DataFrame(resp_rem['result']['records'])
         
         # Filtro automático exclusivo para o cargo de vocês
@@ -95,12 +85,11 @@ def carregar_dados():
         return df_servidores, df_remuneracao
         
     except Exception as e:
-        # Modo de Segurança: avisa se o site do governo estiver fora do ar
-        st.error(f"⚠️ Erro ao conectar com o banco de dados do Governo. Verifique os códigos inseridos ou se o Portal está fora do ar. Detalhe técnico: {e}")
+        # Modo de Segurança aprimorado
+        st.error(f"⚠️ Erro ao processar os dados. Verifique os IDs. Detalhe técnico: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
 df_serv, df_rem = carregar_dados()
-
 # 5. ESTRUTURA DAS ABAS
 aba1, aba2, aba3 = st.tabs([
     "📍 Visão Geral & Déficit", 
