@@ -63,8 +63,8 @@ with col_texto:
 @st.cache_data(ttl=86400) # O sistema segura os dados na memória por 24 horas
 def carregar_dados():
     # Links fixos das planilhas no portal CKAN do ES
-    url_servidores = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/c26013df-354d-4467-9272-37e7bf570ccf"
-    url_remuneracao = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222"
+    url_servidores = "https://dados.es.gov.br/dataset/4c3ef6d6-6a55-4c54-958b-87678d2b4d4e/resource/c26013df-354d-4467-9272-37e7bf570ccf/download/vinculosservidores.csv"
+    url_remuneracao = "https://dados.es.gov.br/dataset/4c3ef6d6-6a55-4c54-958b-87678d2b4d4e/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222/download/remuneracoes-06_2026.csv"
 
     try:
         # Lê os dados da nuvem
