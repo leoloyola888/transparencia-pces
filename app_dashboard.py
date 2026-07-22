@@ -60,38 +60,50 @@ with col_texto:
 # =============================================================
 # 3. MOTOR DE DADOS - DOWNLOAD DIRETO SEGURO
 # =============================================================
-@st.cache_data(ttl=86400) # O sistema segura os dados na memória por 24 horas
+@st.cache_data(ttl=86400) 
 def carregar_dados():
-    # Links fixos das planilhas no portal CKAN do ES
-    url_servidores = "https://dados.es.gov.br/dataset/4c3ef6d6-6a55-4c54-958b-87678d2b4d4e/resource/c26013df-354d-4467-9272-37e7bf570ccf/download/vinculosservidores.csv"
-    url_remuneracao = "https://dados.es.gov.br/dataset/4c3ef6d6-6a55-4c54-958b-87678d2b4d4e/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222/download/remuneracoes-06_2026.csv"
+    # =====================================================================
+    # COLE OS LINKS DE DOWNLOAD AQUI
+    # =====================================================================
+    url_servidores = "COLE_O_LINK_DE_SERVIDORES_AQUI"
+    url_remuneracao = "COLE_O_LINK_DA_REMUNERACAO_AQUI"
+    # =====================================================================
+
+    lista_servidores = []
+    lista_remuneracao = []
 
     try:
-        # Lê os dados da nuvem
-        df_servidores = pd.read_csv(url_servidores, sep=';', encoding='latin-1', low_memory=False)
-        df_remuneracao = pd.read_csv(url_remuneracao, sep=';', encoding='latin-1', low_memory=False)
-        
-        # Filtro blindado pelo CodCargo (2781)
-        if 'CodCargo' in df_servidores.columns:
-            df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-            df_servidores = df_servidores[df_servidores['CodCargo'] == '2781']
-            
+        # 1. PROCESSA SERVIDORES EM LOTES DE 50 MIL LINHAS
+        for chunk in pd.read_csv(url_servidores, sep=';', encoding='latin-1', low_memory=False, chunksize=50000):
+            if 'CodCargo' in chunk.columns:
+                # Limpa e filtra imediatamente para não pesar a memória
+                chunk['CodCargo'] = chunk['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
+                chunk_filtrado = chunk[chunk['CodCargo'] == '2781']
+                lista_servidores.append(chunk_filtrado)
+                
+        # Junta os pedaços (Agora só temos os investigadores, arquivo levíssimo!)
+        df_servidores = pd.concat(lista_servidores, ignore_index=True) if lista_servidores else pd.DataFrame()
+
+        # 2. PROCESSA REMUNERAÇÃO EM LOTES (Filtrando cirurgicamente)
+        # Pega as matrículas (NumFunc) dos investigadores que achamos no passo 1
+        matriculas_invest = df_servidores['NumFunc'].unique() if 'NumFunc' in df_servidores.columns else []
+
+        for chunk in pd.read_csv(url_remuneracao, sep=';', encoding='latin-1', low_memory=False, chunksize=50000):
+            if 'NumFunc' in chunk.columns and len(matriculas_invest) > 0:
+                # Na planilha de dinheiro, guarda SÓ os dados de quem é investigador
+                chunk_filtrado_rem = chunk[chunk['NumFunc'].isin(matriculas_invest)]
+                lista_remuneracao.append(chunk_filtrado_rem)
+            else:
+                lista_remuneracao.append(chunk)
+
+        df_remuneracao = pd.concat(lista_remuneracao, ignore_index=True) if lista_remuneracao else pd.DataFrame()
+
         return df_servidores, df_remuneracao
         
     except Exception as e:
-        # Modo fallback caso o governo mude o formato do arquivo de ponto e vírgula para vírgula
-        try:
-            df_servidores = pd.read_csv(url_servidores, low_memory=False)
-            df_remuneracao = pd.read_csv(url_remuneracao, low_memory=False)
-            
-            if 'CodCargo' in df_servidores.columns:
-                df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-                df_servidores = df_servidores[df_servidores['CodCargo'] == '2781']
-                
-            return df_servidores, df_remuneracao
-        except Exception as e_interno:
-            st.error(f"⚠️ Erro ao baixar as planilhas diretas. Detalhe técnico: {e_interno}")
-            return pd.DataFrame(), pd.DataFrame()
+        # Modo de segurança extra
+        st.error(f"⚠️ Falha no motor de lotes. Verifique os links. Detalhe técnico: {e}")
+        return pd.DataFrame(), pd.DataFrame()
 
 # Carrega as planilhas na memória
 df_serv, df_rem = carregar_dados()
