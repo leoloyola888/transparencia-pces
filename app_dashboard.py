@@ -63,8 +63,8 @@ def carregar_dados():
     # ⚠️ ATENÇÃO: COLE OS LINKS DIRETOS DE DOWNLOAD ENTRE AS ASPAS ABAIXO
     # (Botão Direito no site do Governo -> Copiar endereço do link)
     # =====================================================================
-    url_servidores = https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/c26013df-354d-4467-9272-37e7bf570ccf
-    url_remuneracao = https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222
+    url_servidores = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/c26013df-354d-4467-9272-37e7bf570ccf"
+    url_remuneracao = "https://dados.es.gov.br/dataset/portal-da-transparencia-pessoal/resource/d558b77d-3e20-4b4a-815a-b8d0fc7b5222"
     # =====================================================================
 
     try:
