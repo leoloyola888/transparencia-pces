@@ -64,8 +64,8 @@ with col_texto:
 def carregar_dados():
     try:
         # Lê os arquivos filtrados que agora vivem na mesma pasta do código
-        df_servidores = pd.read_csv("servidores_pces.csv")
-        df_remuneracao = pd.read_csv("remuneracao_pces.csv")
+        df_servidores = pd.read_csv("servidores.csv")
+        df_remuneracao = pd.read_csv("remuneracao.csv")
         
         # Garante que a coluna CodCargo seja tratada como texto para os filtros das abas
         if 'CodCargo' in df_servidores.columns:
