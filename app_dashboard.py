@@ -58,51 +58,23 @@ with col_texto:
     st.markdown('<p class="sub-title">Painel Estratégico da Comissão de Aprovados (Investigador)</p>', unsafe_allow_html=True)
 
 # =============================================================
-# 3. MOTOR DE DADOS - DOWNLOAD DIRETO SEGURO
+# 3. MOTOR DE DADOS - LEITURA OFFLINE RÁPIDA
 # =============================================================
-@st.cache_data(ttl=86400) 
+@st.cache_data
 def carregar_dados():
-    # =====================================================================
-    # COLE OS LINKS DE DOWNLOAD AQUI
-    # =====================================================================
-    url_servidores = "COLE_O_LINK_DE_SERVIDORES_AQUI"
-    url_remuneracao = "COLE_O_LINK_DA_REMUNERACAO_AQUI"
-    # =====================================================================
-
-    lista_servidores = []
-    lista_remuneracao = []
-
     try:
-        # 1. PROCESSA SERVIDORES EM LOTES DE 50 MIL LINHAS
-        for chunk in pd.read_csv(url_servidores, sep=';', encoding='latin-1', low_memory=False, chunksize=50000):
-            if 'CodCargo' in chunk.columns:
-                # Limpa e filtra imediatamente para não pesar a memória
-                chunk['CodCargo'] = chunk['CodCargo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-                chunk_filtrado = chunk[chunk['CodCargo'] == '2781']
-                lista_servidores.append(chunk_filtrado)
-                
-        # Junta os pedaços (Agora só temos os investigadores, arquivo levíssimo!)
-        df_servidores = pd.concat(lista_servidores, ignore_index=True) if lista_servidores else pd.DataFrame()
-
-        # 2. PROCESSA REMUNERAÇÃO EM LOTES (Filtrando cirurgicamente)
-        # Pega as matrículas (NumFunc) dos investigadores que achamos no passo 1
-        matriculas_invest = df_servidores['NumFunc'].unique() if 'NumFunc' in df_servidores.columns else []
-
-        for chunk in pd.read_csv(url_remuneracao, sep=';', encoding='latin-1', low_memory=False, chunksize=50000):
-            if 'NumFunc' in chunk.columns and len(matriculas_invest) > 0:
-                # Na planilha de dinheiro, guarda SÓ os dados de quem é investigador
-                chunk_filtrado_rem = chunk[chunk['NumFunc'].isin(matriculas_invest)]
-                lista_remuneracao.append(chunk_filtrado_rem)
-            else:
-                lista_remuneracao.append(chunk)
-
-        df_remuneracao = pd.concat(lista_remuneracao, ignore_index=True) if lista_remuneracao else pd.DataFrame()
-
+        # Lê os arquivos filtrados que agora vivem na mesma pasta do código
+        df_servidores = pd.read_csv("servidores_pces.csv")
+        df_remuneracao = pd.read_csv("remuneracao_pces.csv")
+        
+        # Garante que a coluna CodCargo seja tratada como texto para os filtros das abas
+        if 'CodCargo' in df_servidores.columns:
+            df_servidores['CodCargo'] = df_servidores['CodCargo'].astype(str)
+            
         return df_servidores, df_remuneracao
         
     except Exception as e:
-        # Modo de segurança extra
-        st.error(f"⚠️ Falha no motor de lotes. Verifique os links. Detalhe técnico: {e}")
+        st.error(f"⚠️ Erro ao ler os arquivos locais. Verifique se eles foram gerados e upados no GitHub. Detalhe: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
 # Carrega as planilhas na memória
