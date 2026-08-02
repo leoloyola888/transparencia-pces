@@ -55,7 +55,7 @@ with col_logo:
 
 with col_texto:
     st.markdown('<p class="main-title">DIRETORIA DE INTELIGÊNCIA E DADOS - PCES</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">Painel Estratégico da Comissão de Aprovados (Investigador)</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Painel Estratégico dos Aprovados (Investigador)</p>', unsafe_allow_html=True)
 
 # =============================================================
 # 3. MOTOR DE DADOS - LEITURA OFFLINE RÁPIDA
