@@ -145,6 +145,7 @@ with aba2:
         df_saidas = df_serv[df_serv['Situacao'].isin(['APOSENTADO', 'DESLIGADO'])].copy()
         
         if not df_saidas.empty:
+            # Tratamento de datas
             df_saidas['Data_Saida'] = pd.to_datetime(df_saidas['Aposentadoria'], errors='coerce')
             mask_desligado = df_saidas['Situacao'] == 'DESLIGADO'
             
@@ -152,13 +153,18 @@ with aba2:
                 df_saidas.loc[mask_desligado, 'Data_Saida'] = pd.to_datetime(df_saidas.loc[mask_desligado, 'Vacancia'], errors='coerce')
             
             df_saidas = df_saidas.dropna(subset=['Data_Saida'])
+            
+            # Cria colunas de Ano e Mês
             df_saidas['Ano'] = df_saidas['Data_Saida'].dt.year
+            df_saidas['Mes'] = df_saidas['Data_Saida'].dt.month
+            
             df_saidas = df_saidas[(df_saidas['Ano'] >= 2005) & (df_saidas['Ano'] <= 2026)]
             
-            dados_grafico = df_saidas.groupby(['Ano', 'Situacao']).size().reset_index(name='Quantidade')
+            # --- 1. GRÁFICO ANUAL (Visão Geral) ---
+            dados_ano = df_saidas.groupby(['Ano', 'Situacao']).size().reset_index(name='Quantidade')
             
-            if not dados_grafico.empty:
-                fig2 = px.bar(dados_grafico, x='Ano', y='Quantidade', color='Situacao', 
+            if not dados_ano.empty:
+                fig2 = px.bar(dados_ano, x='Ano', y='Quantidade', color='Situacao', 
                              barmode='stack',
                              color_discrete_map={'APOSENTADO': '#4C72B0', 'DESLIGADO': '#C44E52'})
                              
@@ -168,6 +174,40 @@ with aba2:
                     margin=dict(l=10, r=10, t=30, b=10)
                 )
                 st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
+                
+                # --- 2. DETALHAMENTO MENSAL (Drill-down interativo) ---
+                st.markdown("---")
+                st.write("#### 🔍 Detalhamento Mensal por Ano")
+                
+                # Cria um seletor com os anos disponíveis (do mais recente para o mais antigo)
+                anos_disponiveis = sorted(df_saidas['Ano'].unique(), reverse=True)
+                ano_selecionado = st.selectbox("Selecione o ano para visualizar as baixas mês a mês:", anos_disponiveis)
+                
+                if ano_selecionado:
+                    # Filtra os dados apenas para o ano escolhido
+                    df_mes = df_saidas[df_saidas['Ano'] == ano_selecionado]
+                    dados_mes = df_mes.groupby(['Mes', 'Situacao']).size().reset_index(name='Quantidade')
+                    
+                    # Dicionário para transformar números (1, 2) em nomes (Jan, Fev)
+                    meses_map = {1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun', 
+                                 7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'}
+                    
+                    dados_mes['Nome_Mes'] = dados_mes['Mes'].map(meses_map)
+                    
+                    # Gráfico Mensal
+                    fig_mes = px.bar(dados_mes, x='Nome_Mes', y='Quantidade', color='Situacao', text='Quantidade',
+                                     barmode='stack', 
+                                     category_orders={'Nome_Mes': list(meses_map.values())}, # Força a ordem dos meses
+                                     color_discrete_map={'APOSENTADO': '#4C72B0', 'DESLIGADO': '#C44E52'})
+                                     
+                    fig_mes.update_traces(textposition='inside')
+                    fig_mes.update_layout(
+                        xaxis_title="Meses do Ano",
+                        yaxis_title="Quantidade de Baixas",
+                        showlegend=False, # Oculta a legenda pois já tem no gráfico de cima
+                        margin=dict(l=10, r=10, t=30, b=10)
+                    )
+                    st.plotly_chart(fig_mes, use_container_width=True, config={'displayModeBar': False})
             else:
                 st.info("Não há dados de vacância estruturados neste recorte de tempo.")
 
